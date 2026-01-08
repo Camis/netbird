@@ -162,7 +162,7 @@ init_environment() {
   wait_management
 
   echo -e "\nDone!\n"
-  echo "You can access the NetBird dashboard at $NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN"
+  echo "You can access the NetBird dashboard at $NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN:$NETBIRD_PORT"
   echo "Follow the onboarding steps to set up your NetBird instance."
   return 0
 }
