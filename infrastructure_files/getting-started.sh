@@ -88,7 +88,7 @@ wait_management() {
   counter=1
   while true; do
     # Check the embedded IdP endpoint
-    if curl -sk -f -o /dev/null "$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN/oauth2/.well-known/openid-configuration" 2>/dev/null; then
+    if curl -sk -f -o /dev/null "$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN:$NETBIRD_PORT/oauth2/.well-known/openid-configuration" 2>/dev/null; then
       break
     fi
     if [[ $counter -eq 60 ]]; then
@@ -127,7 +127,7 @@ init_environment() {
   if [[ "$NETBIRD_DOMAIN" == "use-ip" ]]; then
     NETBIRD_DOMAIN=$(get_main_ip_address)
   else
-    NETBIRD_PORT=443
+    NETBIRD_PORT=500
     CADDY_SECURE_DOMAIN=", $NETBIRD_DOMAIN:$NETBIRD_PORT"
     NETBIRD_HTTP_PROTOCOL="https"
     NETBIRD_RELAY_PROTO="rels"
@@ -170,7 +170,7 @@ init_environment() {
 render_caddyfile() {
   cat <<EOF
 {  
-  servers :80,:443 {
+  servers :80,:$NETBIRD_PORT {
     protocols h1 h2c h2 h3
   }
 }
@@ -248,10 +248,10 @@ render_management_json() {
     "DataStoreEncryptionKey": "$DATASTORE_ENCRYPTION_KEY",
     "EmbeddedIdP": {
         "Enabled": true,
-        "Issuer": "$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN/oauth2",
+        "Issuer": "$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN:$NETBIRD_PORT/oauth2",
         "DashboardRedirectURIs": [
-            "$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN/nb-auth",
-            "$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN/nb-silent-auth"
+            "$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN:$NETBIRD_PORT/nb-auth",
+            "$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN:$NETBIRD_PORT/nb-silent-auth"
         ]
     }
 }
@@ -262,13 +262,13 @@ EOF
 render_dashboard_env() {
   cat <<EOF
 # Endpoints
-NETBIRD_MGMT_API_ENDPOINT=$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN
-NETBIRD_MGMT_GRPC_API_ENDPOINT=$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN
+NETBIRD_MGMT_API_ENDPOINT=$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN:$NETBIRD_PORT
+NETBIRD_MGMT_GRPC_API_ENDPOINT=$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN:$NETBIRD_PORT
 # OIDC - using embedded IdP
 AUTH_AUDIENCE=netbird-dashboard
 AUTH_CLIENT_ID=netbird-dashboard
 AUTH_CLIENT_SECRET=
-AUTH_AUTHORITY=$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN/oauth2
+AUTH_AUTHORITY=$NETBIRD_HTTP_PROTOCOL://$NETBIRD_DOMAIN:$NETBIRD_PORT/oauth2
 USE_AUTH0=false
 AUTH_SUPPORTED_SCOPES=openid profile email offline_access
 AUTH_REDIRECT_URI=/nb-auth
@@ -301,8 +301,8 @@ services:
     restart: unless-stopped
     networks: [netbird]
     ports:
-      - '443:443'
-      - '443:443/udp'
+      - "$NETBIRD_PORT:$NETBIRD_PORT"
+      - "$NETBIRD_PORT:$NETBIRD_PORT/udp"
       - '80:80'
     volumes:
       - netbird_caddy_data:/data
